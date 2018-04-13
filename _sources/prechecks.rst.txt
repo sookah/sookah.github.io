@@ -1,0 +1,7 @@
+Prechecks
+==================
+
+Device checks performed before initializing tests
+
+# --------------------------------------------------
+

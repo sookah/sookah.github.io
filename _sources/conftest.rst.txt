@@ -1,0 +1,7 @@
+Test configuration
+==================
+
+Any fixtures, setup, etc. required for the tests
+
+# -------------------------------------------------
+

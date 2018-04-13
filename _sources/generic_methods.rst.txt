@@ -1,0 +1,8 @@
+Generic methods
+===============================
+
+Anything and everything for data collection
+
+---------------------------------------------
+
+.. automodule:: generic_methods

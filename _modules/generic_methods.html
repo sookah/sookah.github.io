@@ -1,0 +1,587 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>generic_methods &#8212; Test Framework Baseline 0.0.1-pre documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Test Framework Baseline 0.0.1-pre documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for generic_methods</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">getloadavg</span>
+
+<span class="kn">import</span> <span class="nn">psutil</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;GeneralDeviceManagement&#39;</span><span class="p">,</span> <span class="s1">&#39;SafetyChecks&#39;</span><span class="p">,</span> <span class="s1">&#39;get_method_args&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># Inspects all variables used by a method</span>
+<span class="c1"># and returns the method arguments</span>
+<span class="c1"># leaving out &#39;self&#39; if it is the first argument</span>
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_method_args</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[:</span><span class="n">method</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_argcount</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;self&#39;</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">args</span>
+
+
+<span class="c1"># Receives a psutil.Process object</span>
+<span class="c1"># and serializes its selected attributes as a dict</span>
+<span class="c1"># Attribute order is randomized by psutil.Process.as_dict()</span>
+<span class="c1"># and should not be assumed for any functionality</span>
+<span class="k">def</span> <span class="nf">serialize_proc</span><span class="p">(</span><span class="n">proc</span><span class="p">:</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;exe&#39;</span><span class="p">,</span>
+                                                       <span class="s1">&#39;cmdline&#39;</span><span class="p">,</span> <span class="s1">&#39;pid&#39;</span><span class="p">,</span>
+                                                       <span class="s1">&#39;ppid&#39;</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">,</span>
+                                                       <span class="s1">&#39;create_time&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">,</span>
+                                                       <span class="s1">&#39;cpu_times&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu_percent&#39;</span><span class="p">,</span>
+                                                       <span class="s1">&#39;open_files&#39;</span><span class="p">)):</span>
+    <span class="n">proc_attrs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">attr</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">arg</span> <span class="ow">in</span> <span class="n">proc_attrs</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">serialized_proc</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Invalid psutil.Process attributes were passed to the function.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serialized_proc</span>
+
+
+<span class="c1"># Receives a psutil.Popen object</span>
+<span class="c1"># and serializes its important info as a dict</span>
+<span class="k">def</span> <span class="nf">serialize_popen</span><span class="p">(</span><span class="n">popen</span><span class="p">:</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Popen</span><span class="p">):</span>
+    <span class="n">serialized_popen</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">popen</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+        <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="n">popen</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">serialized_popen</span>
+
+
+<div class="viewcode-block" id="GeneralDeviceManagement"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement">[docs]</a><span class="k">class</span> <span class="nc">GeneralDeviceManagement</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic methods for general device management and monitoring.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.get_proc"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_proc">[docs]</a>    <span class="k">def</span> <span class="nf">get_proc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proc_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">proc_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pproc_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get_proc(proc_name, proc_id, pproc_id, serialize)</span>
+<span class="sd">        Gets a process from the list of currently running ones.</span>
+
+<span class="sd">        :param proc_name: Name of the process to look up and perform the method for.\n</span>
+<span class="sd">            *Must be a string unique to the name of a single process among the currently running ones</span>
+<span class="sd">            if used without proc_id.*\n</span>
+<span class="sd">            If unset, *proc_id* must be set instead.</span>
+<span class="sd">            If both are set, *proc_id* is used for the lookup and *proc_name* is only used for verification.\n</span>
+<span class="sd">            Internally uses :func:`get_procs_by_name` and checks if the returned list only contains a single item.</span>
+<span class="sd">        :type proc_name: str</span>
+<span class="sd">        :param proc_id: Process ID (PID) of the process to look up and perform the method for.\n</span>
+<span class="sd">            If unset, *proc_name* must be set instead.</span>
+<span class="sd">            If both are set, *proc_id* is used for the lookup and *proc_name* is only used for verification.\n</span>
+<span class="sd">            If using *proc_id*, *pproc_id* can be used to indicate the parent process id</span>
+<span class="sd">            in order to check for possible process id reuse.</span>
+<span class="sd">        :type proc_id: int</span>
+<span class="sd">        :param pproc_id: Expected Parent Process ID (PPID) for the process returned when looking up *proc_id*.\n</span>
+<span class="sd">            Used to check for possible process id reuse, and only in conjunction with *proc_id*.</span>
+<span class="sd">        :type pproc_id: int</span>
+<span class="sd">        :param serialize: Tells the method whether to return a |psutil.Process| instance or serialize the</span>
+<span class="sd">            important process info. This is intended to separate API returns (which would be better</span>
+<span class="sd">            formated with a serialized object) versus internal usage which might require a |psutil.Process| object.\n</span>
+<span class="sd">            Defaults to **False**.</span>
+<span class="sd">        :type serialize: bool</span>
+<span class="sd">        :return: Process whose attributes match the provided function arguments.</span>
+<span class="sd">        :rtype: |psutil.Process| or dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">proc_name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">proc_id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Neither proc_name nor proc_id were provided, &quot;</span>
+                            <span class="s2">&quot;so there is no process to perform the operation for.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">proc_id</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">psutil</span><span class="o">.</span><span class="n">pid_exists</span><span class="p">(</span><span class="n">proc_id</span><span class="p">):</span>
+                <span class="n">proc</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">proc_id</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pproc_id</span> <span class="ow">and</span> <span class="n">proc</span><span class="o">.</span><span class="n">ppid</span><span class="p">()</span> <span class="o">!=</span> <span class="n">pproc_id</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;The provided parent process id </span><span class="si">{pproc_id}</span><span class="s1"> does not match &#39;</span>
+                                    <span class="n">f</span><span class="s1">&#39;the parent process id of the process currently using &#39;</span>
+                                    <span class="n">f</span><span class="s1">&#39;the process id </span><span class="si">{proc_id}</span><span class="s1"> (real ppid = </span><span class="si">{proc.ppid}</span><span class="s1">).&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">proc_name</span> <span class="ow">and</span> <span class="n">proc_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">proc</span><span class="o">.</span><span class="n">name</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;A process with proc_id </span><span class="si">{proc_id}</span><span class="s1"> was found but &#39;</span>
+                                    <span class="n">f</span><span class="s1">&#39;its name did not contaion </span><span class="si">{proc_name}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;No processs with the provided pid </span><span class="si">{proc_id}</span><span class="s1"> was found.&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">proc_name</span><span class="p">:</span>
+            <span class="n">lookup_result_procs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_procs_by_name</span><span class="p">(</span><span class="n">proc_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lookup_result_procs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">proc</span> <span class="o">=</span> <span class="n">lookup_result_procs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">lookup_result_procs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;No processes with the specified string </span><span class="si">{proc_name}</span><span class="s1"> in their name were found.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">lookup_result_procs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">unpack</span><span class="p">(</span><span class="n">procs</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">iter_proc</span><span class="o">.</span><span class="n">name</span><span class="p">())</span> <span class="k">for</span> <span class="n">iter_proc</span> <span class="ow">in</span> <span class="n">procs</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Several processes with the specified string </span><span class="si">{proc_name}</span><span class="s1"> in their name were found. &#39;</span>
+                                <span class="n">f</span><span class="s1">&#39;Discovered process names: {unpack(lookup_result_procs)}&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">serialize</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">serialize_proc</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">proc</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.get_procs_by_name"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_procs_by_name">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_procs_by_name</span><span class="p">(</span><span class="n">proc_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get_procs_by_name(proc_name, serialize)</span>
+<span class="sd">        Gets a list of processes containing *proc_name* in their names.</span>
+
+<span class="sd">        :param proc_name: Name of the process to look up.</span>
+<span class="sd">        :type proc_name: str</span>
+<span class="sd">        :param serialize: Tells the method whether to return a |psutil.Process| instance or serialize the</span>
+<span class="sd">            important process info. This is intended to separate API returns (which would be better</span>
+<span class="sd">            formated with a serialized object) versus internal usage which might require a |psutil.Process| object.\n</span>
+<span class="sd">            Defaults to **False**.</span>
+<span class="sd">        :type serialize: bool</span>
+<span class="sd">        :return: Processes whose name contains *proc_name*.</span>
+<span class="sd">        :rtype: list(|psutil.Process|) or list(dict)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">psutil</span><span class="o">.</span><span class="n">process_iter</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">proc_name</span> <span class="ow">in</span> <span class="n">proc</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">serialize</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">serialize_proc</span><span class="p">(</span><span class="n">proc</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.kill_proc_tree"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.kill_proc_tree">[docs]</a>    <span class="k">def</span> <span class="nf">kill_proc_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proc_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">proc_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">pproc_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sig</span><span class="p">:</span> <span class="n">signal</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span>
+                       <span class="n">include_parent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">on_terminate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;kill_proc_tree(proc_name, proc_id, pproc_id, sig, include_parent, timeout, serialize, on_terminate)</span>
+<span class="sd">        Kills a process&#39;s tree, as well as the process itself if *include_parent* is **True**.</span>
+
+<span class="sd">        :param proc_name: Name of the process to look up and perform the method for.\n</span>
+<span class="sd">            *Must be a string unique to the name of a single process among the currently running ones</span>
+<span class="sd">            if used without proc_id.*\n</span>
+<span class="sd">            If unset, *proc_id* must be set instead.</span>
+<span class="sd">            If both are set, *proc_id* is used for the lookup and *proc_name* is only used for verification.\n</span>
+<span class="sd">            Internally uses :func:`get_procs_by_name` and checks if the returned list only contains a single item.</span>
+<span class="sd">        :type proc_name: str</span>
+<span class="sd">        :param proc_id: Process ID (PID) of the process to look up and perform the method for.\n</span>
+<span class="sd">            If unset, *proc_name* must be set instead.</span>
+<span class="sd">            If both are set, *proc_id* is used for the lookup and *proc_name* is only used for verification.\n</span>
+<span class="sd">            If using *proc_id*, *pproc_id* can be used to indicate the parent process id</span>
+<span class="sd">            in order to check for possible process id reuse.</span>
+<span class="sd">        :type proc_id: int</span>
+<span class="sd">        :param pproc_id: Expected Parent Process ID (PPID) for the process returned when looking up *proc_id*.\n</span>
+<span class="sd">            Used to check for possible process id reuse, and only in conjunction with *proc_id*.</span>
+<span class="sd">        :type pproc_id: int</span>
+<span class="sd">        :param sig: Signal to send to all processes in the tree.</span>
+<span class="sd">        :type sig: signal.SIGTERM</span>
+<span class="sd">        :param include_parent: Indicates whether to send *signal* to the parent (*proc*) as well. Default to **True**.</span>
+<span class="sd">        :type include_parent: bool</span>
+<span class="sd">        :param timeout: Timeout to wait for process termination.</span>
+<span class="sd">        :type timeout: int or None</span>
+<span class="sd">        :param serialize: Tells the method whether to return a |psutil.Process| instance or serialize the</span>
+<span class="sd">            important process info. This is intended to separate API returns (which would be better</span>
+<span class="sd">            formated with a serialized object) versus internal usage which might require a |psutil.Process| object.\n</span>
+<span class="sd">            Defaults to **False**.</span>
+<span class="sd">        :type serialize: bool</span>
+<span class="sd">        :param on_terminate: Function to execute upon termination of a process.</span>
+<span class="sd">        :type on_terminate: function or None</span>
+<span class="sd">        :return: Processes (|psutil.Process| or serialized to dict)</span>
+<span class="sd">            that were terminated (*gone*) and processes that are still alive (*alive*).</span>
+<span class="sd">        :rtype: :func:`python:collections.namedtuple`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: DON&#39;T KILL MAIN APP EITHER (PLEASE)</span>
+        <span class="n">proc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_proc</span><span class="p">(</span><span class="n">proc_name</span><span class="o">=</span><span class="n">proc_name</span><span class="p">,</span> <span class="n">proc_id</span><span class="o">=</span><span class="n">proc_id</span><span class="p">,</span> <span class="n">pproc_id</span><span class="o">=</span><span class="n">pproc_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">proc</span> <span class="o">==</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t tell the process to terminate itself&quot;</span><span class="p">)</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">children</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">include_parent</span><span class="p">:</span>
+            <span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">child_proc</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+            <span class="n">child_proc</span><span class="o">.</span><span class="n">send_signal</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+        <span class="n">result_state</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;result_state&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;gone&#39;</span><span class="p">,</span> <span class="s1">&#39;alive&#39;</span><span class="p">])</span>
+        <span class="n">gone</span><span class="p">,</span> <span class="n">alive</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">wait_procs</span><span class="p">(</span><span class="n">children</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">on_terminate</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">serialize</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">gone</span> <span class="ow">and</span> <span class="n">alive</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">serialize_proc</span><span class="p">(</span><span class="n">gone</span><span class="p">),</span> <span class="n">serialize_proc</span><span class="p">(</span><span class="n">alive</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">gone</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">serialize_proc</span><span class="p">(</span><span class="n">gone</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">alive</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">serialize_proc</span><span class="p">(</span><span class="n">alive</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result_state</span><span class="p">(</span><span class="n">gone</span><span class="o">=</span><span class="n">gone</span><span class="p">,</span> <span class="n">alive</span><span class="o">=</span><span class="n">alive</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.generic_on_terminate"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.generic_on_terminate">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">generic_on_terminate</span><span class="p">(</span><span class="n">gone_proc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;generic_on_terminate()</span>
+<span class="sd">        Generic function to print that a process has been terminated.</span>
+
+<span class="sd">        :param gone_proc: Process that was terminated</span>
+<span class="sd">            (|psutil.Process| subclass passed to the function by :func:`psutil.wait_procs`).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Process </span><span class="si">{gone_proc}</span><span class="s2"> terminated with exit code </span><span class="si">{gone_proc.returncode}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.get_files_in_use"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_files_in_use">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_files_in_use</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;get_files_in_use()</span>
+<span class="sd">        Get all files currently being used. To be used when general info on all files</span>
+<span class="sd">        curently open on the system is required. For info on a specific process,</span>
+<span class="sd">        :func:`get_proc` is recommended instead.</span>
+
+<span class="sd">        :return: Files currently open.</span>
+<span class="sd">        :rtype: list(|psutil.Popen|)</span>
+
+<span class="sd">        :Example:</span>
+<span class="sd">            get_files_in_use() - list of all open files (|psutil.Popen|) across all processes\n</span>
+<span class="sd">            get_files_in_use()[0] - process name and pid, as well as all open files (|psutil.Popen|) for said process\n</span>
+<span class="sd">            get_files_in_use()[0][&#39;open_files&#39;] - list of all open files (|psutil.Popen|) for specific process\n</span>
+<span class="sd">            get_files_in_use()[0][&#39;open_files&#39;][0] - info about specific open file (|psutil.Popen|)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">psutil</span><span class="o">.</span><span class="n">process_iter</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;open_files&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">proc</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;open_files&#39;</span><span class="p">]:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">proc</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="s1">&#39;pid&#39;</span><span class="p">:</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="s1">&#39;ppid&#39;</span><span class="p">:</span> <span class="n">proc</span><span class="o">.</span><span class="n">ppid</span><span class="p">(),</span>
+                               <span class="s1">&#39;open_files&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">serialize_popen</span><span class="p">(</span><span class="n">popen</span><span class="p">)</span> <span class="k">for</span> <span class="n">popen</span> <span class="ow">in</span> <span class="n">proc</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;open_files&#39;</span><span class="p">]]})</span></div>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="c1"># TODO: Remove this since get_proc() does the same due to serialize_proc()?</span>
+<div class="viewcode-block" id="GeneralDeviceManagement.get_bulk_process_data"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_bulk_process_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_bulk_process_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proc_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="n">proc_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pproc_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get_bulk_process_data(proc_name, proc_id, pproc_id)</span>
+<span class="sd">        Get all (relevant) process data in a single call.</span>
+
+<span class="sd">        :param proc_name: Name of the process to look up and perform the method for.\n</span>
+<span class="sd">            *Must be a string unique to the name of a single process among the currently running ones</span>
+<span class="sd">            if used without proc_id.*\n</span>
+<span class="sd">            If unset, *proc_id* must be set instead.</span>
+<span class="sd">            If both are set, *proc_id* is used for the lookup and *proc_name* is only used for verification.\n</span>
+<span class="sd">            Internally uses :func:`get_procs_by_name` and checks if the returned list only contains a single item.</span>
+<span class="sd">        :type proc_name: str</span>
+<span class="sd">        :param proc_id: Process ID (PID) of the process to look up and perform the method for.\n</span>
+<span class="sd">            If unset, *proc_name* must be set instead.</span>
+<span class="sd">            If both are set, *proc_id* is used for the lookup and *proc_name* is only used for verification.\n</span>
+<span class="sd">            If using *proc_id*, *pproc_id* can be used to indicate the parent process id</span>
+<span class="sd">            in order to check for possible process id reuse.</span>
+<span class="sd">        :type proc_id: int</span>
+<span class="sd">        :param pproc_id: Expected Parent Process ID (PPID) for the process returned when looking up *proc_id*.\n</span>
+<span class="sd">            Used to check for possible process id reuse, and only in conjunction with *proc_id*.</span>
+<span class="sd">        :type pproc_id: int</span>
+<span class="sd">        :return: General process data - name, pid, owner (username), status,</span>
+<span class="sd">            cpu time used since boot, and current cpu percentage.</span>
+<span class="sd">        :rtype: dict</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">proc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_proc</span><span class="p">(</span><span class="n">proc_name</span><span class="o">=</span><span class="n">proc_name</span><span class="p">,</span> <span class="n">proc_id</span><span class="o">=</span><span class="n">proc_id</span><span class="p">,</span> <span class="n">pproc_id</span><span class="o">=</span><span class="n">pproc_id</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;ppid&#39;</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu_times&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu_percent&#39;</span><span class="p">])</span></div>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.get_bulk_device_data"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_bulk_device_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_bulk_device_data</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;get_bulk_device_data()</span>
+<span class="sd">        Get all relevant device info.</span>
+
+<span class="sd">        :return: General device data - CPU times and frequencies,</span>
+<span class="sd">            disk usage statistics, boot time and currently logged users.</span>
+<span class="sd">        :rtype: dict</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cpu_times&#39;</span><span class="p">:</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()})</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cpu_freq&#39;</span><span class="p">:</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_freq</span><span class="p">()})</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;disk_usage&#39;</span><span class="p">:</span> <span class="n">psutil</span><span class="o">.</span><span class="n">disk_usage</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)})</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;boot_time&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">boot_time</span><span class="p">())</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)})</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;users&#39;</span><span class="p">:</span> <span class="n">psutil</span><span class="o">.</span><span class="n">users</span><span class="p">()})</span></div>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.get_open_ports"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_open_ports">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_open_ports</span><span class="p">(</span><span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;inet&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get_open_ports(kind)</span>
+<span class="sd">        Get all open ports of a certain connection type.</span>
+
+<span class="sd">        :param kind: Connection type as defined</span>
+<span class="sd">            `here &lt;https://psutil.readthedocs.io/en/latest/#psutil.net_connections&gt;`_. Defaults to &#39;inet&#39;.</span>
+<span class="sd">        :type kind: str</span>
+<span class="sd">        :return: Ports currently in use by the specified connection *kind*.</span>
+<span class="sd">        :rtype: list(int)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">connections</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">net_connections</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">)</span>
+        <span class="n">open_ports</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">connections</span><span class="p">:</span>
+            <span class="n">open_ports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conn</span><span class="o">.</span><span class="n">laddr</span><span class="o">.</span><span class="n">port</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">open_ports</span>
+
+    <span class="c1"># def get_memory_hogs():</span>
+
+    <span class="c1"># Questionable usability?</span>
+<div class="viewcode-block" id="GeneralDeviceManagement.get_cpu_hogs"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_cpu_hogs">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_cpu_hogs</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get_cpu_hogs(limit, serialize)</span>
+<span class="sd">        Gets the currently running processes that have used more than the specified amount of cpu time since booting.</span>
+
+<span class="sd">        :param limit: |cpu_hog_limit_param|</span>
+<span class="sd">        :type limit: int</span>
+<span class="sd">        :param serialize: Tells the method whether to return a |psutil.Process| instance or serialize the</span>
+<span class="sd">            important process info. This is intended to separate API returns (which would be better</span>
+<span class="sd">            formated with a serialized object) versus internal usage which might require a |psutil.Process| object.\n</span>
+<span class="sd">            Defaults to **False**.</span>
+<span class="sd">        :type serialize: bool</span>
+<span class="sd">        :return: Processes which took up more than the specified cpu time (*limit*) since booting.</span>
+<span class="sd">        :rtype: list(|psutil.Process|) or list(dict)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">proc_over_limit</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">psutil</span><span class="o">.</span><span class="n">process_iter</span><span class="p">():</span>
+            <span class="n">total_proc_time</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()</span><span class="o">.</span><span class="n">system</span> <span class="o">+</span> <span class="n">proc</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()</span><span class="o">.</span><span class="n">user</span>
+            <span class="k">if</span> <span class="n">total_proc_time</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">serialize</span><span class="p">:</span>
+                    <span class="n">proc_over_limit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">serialize_proc</span><span class="p">(</span><span class="n">proc</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">proc_over_limit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">proc_over_limit</span>
+
+<div class="viewcode-block" id="GeneralDeviceManagement.change_cpu_hog_priority"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.change_cpu_hog_priority">[docs]</a>    <span class="k">def</span> <span class="nf">change_cpu_hog_priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">niceness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;change_cpu_hog_priority(limit, niceness)</span>
+<span class="sd">        Changes the priority (niceness) of processes who&#39;ve used over a certain amount of cpu time since booting,</span>
+<span class="sd">        using :func:`get_cpu_hogs` internally to identify such processes.\n</span>
+<span class="sd">        Niceness values range from -20 to 20 with higher values being lower priority; By default deprioritizes cpu hogs.</span>
+
+<span class="sd">        :param limit: |cpu_hog_limit_param|</span>
+<span class="sd">        :type limit: int</span>
+<span class="sd">        :param niceness: New process niceness to assign to processes considered &quot;hogs&quot;. Defaults to 10.</span>
+<span class="sd">        :type niceness: int</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cpu_hogs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cpu_hogs</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">cpu_hogs</span><span class="p">:</span></div>
+            <span class="n">proc</span><span class="o">.</span><span class="n">nice</span><span class="p">(</span><span class="n">niceness</span><span class="p">)</span>
+
+    <span class="c1"># Used to detect abnormal activity, processes that don&#39;t properly clean up after themselves and general high IO activity</span>
+<div class="viewcode-block" id="GeneralDeviceManagement.get_file_openers"><a class="viewcode-back" href="../generic_methods.html#generic_methods.GeneralDeviceManagement.get_file_openers">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_file_openers</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get_file_openers(limit, serialize)</span>
+<span class="sd">        Gets processes who currently have a number of files open above the *limit*.</span>
+
+<span class="sd">        :param limit: Threshold on files open, processes above which should be identified. Defaults to 20.</span>
+<span class="sd">        :type limit: int</span>
+<span class="sd">        :param serialize: Tells the method whether to return a |psutil.Process| instance or serialize the</span>
+<span class="sd">            important process info. This is intended to separate API returns (which would be better</span>
+<span class="sd">            formated with a serialized object) versus internal usage which might require a |psutil.Process| object.\n</span>
+<span class="sd">            Defaults to **False**.</span>
+<span class="sd">        :type serialize: bool</span>
+<span class="sd">        :return: Processes which have more than the specified number of files open currently.</span>
+<span class="sd">        :rtype: list(|psutil.Process|)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">proc_over_limit</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">psutil</span><span class="o">.</span><span class="n">process_iter</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;open_files&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">proc</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;open_files&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;open_files&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">serialize</span><span class="p">:</span>
+                        <span class="n">proc_over_limit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">serialize_proc</span><span class="p">(</span><span class="n">proc</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">proc_over_limit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">proc_over_limit</span>
+
+
+<div class="viewcode-block" id="SafetyChecks"><a class="viewcode-back" href="../generic_methods.html#generic_methods.SafetyChecks">[docs]</a><span class="k">class</span> <span class="nc">SafetyChecks</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic methods to verify that certain device properties are within ranges that are considered safe</span>
+<span class="sd">    either for testing or general usage.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">safe_disk_space_limit</span> <span class="o">=</span> <span class="mi">95</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Default *limit* to be used by :func:`safe_disk_space` </span>
+<span class="sd">    if no value is passed to the function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">safe_battery_level_limit</span> <span class="o">=</span> <span class="mi">40</span>
+    <span class="sd">&quot;&quot;&quot;Default *limit* to be used by :func:`safe_battery_level` </span>
+<span class="sd">    if no value is passed to the function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">safe_temperature_level_limit</span> <span class="o">=</span> <span class="mi">80</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Default *limit* to be used by :func:`safe_temperature_level` </span>
+<span class="sd">    if no value is passed to the function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">safe_load_avg_limit</span> <span class="o">=</span> <span class="mf">0.7</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Default *limit* to be used by :func:`safe_load_avg_level` </span>
+<span class="sd">    if no value is passed to the function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">safe_load_avg_period</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Default *period* to be used by :func:`safe_load_avg_level` </span>
+<span class="sd">    if no value is passed to the function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SafetyChecks.safe_disk_space"><a class="viewcode-back" href="../generic_methods.html#generic_methods.SafetyChecks.safe_disk_space">[docs]</a>    <span class="k">def</span> <span class="nf">safe_disk_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;safe_disk_space(limit)</span>
+<span class="sd">        Verifies that the device&#39;s storage space is below a safety threshold (percentage).</span>
+
+<span class="sd">        :param limit: The percentage of storage space we require free.</span>
+<span class="sd">            Defaults to :any:`safe_disk_space_limit`</span>
+<span class="sd">            (|safe_disk_space_limit_default|) if no value is passed</span>
+<span class="sd">        :type limit: int</span>
+<span class="sd">        :return: Indicator if the disk space is below the *limit*.\n</span>
+<span class="sd">            **True** if below the *limit*, **False** if above.</span>
+<span class="sd">        :rtype: bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safe_disk_space_limit</span></div>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">disk_usage</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">percent</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">)</span>
+
+    <span class="c1"># Possibly add support for alternatively checking estimated time left for battery, rather than percent?</span>
+<div class="viewcode-block" id="SafetyChecks.safe_battery_level"><a class="viewcode-back" href="../generic_methods.html#generic_methods.SafetyChecks.safe_battery_level">[docs]</a>    <span class="k">def</span> <span class="nf">safe_battery_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;safe_battery_level(limit)</span>
+<span class="sd">        Verifies that the device has a sufficient battery level or is plugged in.</span>
+
+<span class="sd">        :param limit: Battery percentage required if on battery.</span>
+<span class="sd">            Defaults to :any:`safe_battery_level_limit`</span>
+<span class="sd">            (|safe_battery_level_limit_default|) if no value is passed.</span>
+<span class="sd">        :type limit: int</span>
+<span class="sd">        :return: Indicator whether the battery level should be a concern.\n</span>
+<span class="sd">            **True** if the device has sufficient energy, or **False** if</span>
+<span class="sd">            the device is below the indicated battery percentage and unplugged.</span>
+<span class="sd">        :rtype: bool</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            Always returns **None** on devices that are always plugged in or have no battery sensors.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safe_battery_level_limit</span>
+        <span class="n">battery_stats</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">sensors_battery</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">battery_stats</span><span class="o">.</span><span class="n">power_plugged</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">battery_stats</span><span class="o">.</span><span class="n">percent</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SafetyChecks.safe_temperature_level"><a class="viewcode-back" href="../generic_methods.html#generic_methods.SafetyChecks.safe_temperature_level">[docs]</a>    <span class="k">def</span> <span class="nf">safe_temperature_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;safe_temperature_level(limit)</span>
+<span class="sd">        Verifies if all device components are below a certain</span>
+<span class="sd">        percentage of their factory critical temperature levels</span>
+<span class="sd">        and returns any components that aren&#39;t.</span>
+
+<span class="sd">        :param limit: Percentage of factory critical temperature levels which is considered unsafe.</span>
+<span class="sd">            Defaults to :any:`safe_temperature_level_limit`</span>
+<span class="sd">            (|safe_temperature_level_limit_default|) if no value is passed.</span>
+<span class="sd">        :type limit: int</span>
+<span class="sd">        :return: Hardware components approaching critical temperatures.\n</span>
+<span class="sd">            Empty if no components pass the *limit*.</span>
+<span class="sd">        :rtype: dict</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safe_temperature_level_limit</span>
+        <span class="n">unsafe_components</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sensors</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">sensors_temperatures</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sensors</span><span class="p">:</span>
+            <span class="n">unsafe_rows</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">sensors</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">current</span> <span class="o">&gt;</span> <span class="n">row</span><span class="o">.</span><span class="n">critical</span> <span class="o">*</span> <span class="n">limit</span><span class="o">/</span><span class="mi">100</span><span class="p">:</span>
+                    <span class="n">unsafe_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">unsafe_rows</span><span class="p">:</span>
+                <span class="n">unsafe_components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">unsafe_rows</span><span class="p">})</span></div>
+        <span class="k">return</span> <span class="n">unsafe_components</span>
+
+<div class="viewcode-block" id="SafetyChecks.safe_load_avg_level"><a class="viewcode-back" href="../generic_methods.html#generic_methods.SafetyChecks.safe_load_avg_level">[docs]</a>    <span class="k">def</span> <span class="nf">safe_load_avg_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">period</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;safe_load_avg_level(limit, period)</span>
+<span class="sd">        Verifies that the CPU load average for the</span>
+<span class="sd">        specified time period is above the specified threshold</span>
+
+<span class="sd">        :param limit: Maximum acceptable load average.</span>
+<span class="sd">            Defaults to :any:`safe_load_avg_limit`</span>
+<span class="sd">            (|safe_load_avg_limit_default|) if no value is passed.</span>
+<span class="sd">        :type limit: float</span>
+<span class="sd">        :param period: Period for which to check the load average - 1 (0), 5 (1), or 15 (2) minutes.</span>
+<span class="sd">            Defaults to :any:`safe_load_avg_period`</span>
+<span class="sd">            (|safe_load_avg_period_default|) if no value is passed.</span>
+<span class="sd">        :type period: 0-2</span>
+<span class="sd">        :return: Indicator whether the CPU load average for the specified *period* is above the *limit*.\n</span>
+<span class="sd">            Returns **True** if within the safety threshold, or **False** if above *limit*.</span>
+<span class="sd">        :rtype: bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safe_load_avg_limit</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">period</span><span class="p">:</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safe_load_avg_period</span></div></div>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">getloadavg</span><span class="p">()[</span><span class="n">period</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../generic_methods.html">1. Generic methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prechecks.html">2. Prechecks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conftest.html">3. Test configuration</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Test Framework Baseline 0.0.1-pre documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Ivaylo Hristov.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.0.
+    </div>
+  </body>
+</html>

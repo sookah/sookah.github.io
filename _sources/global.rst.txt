@@ -1,0 +1,3 @@
+.. |cpu_hog_limit_param| replace:: cpu time limit (since booting) above which processes are considered "hogs"
+.. |psutil.Popen| replace:: :class:`psutil.Popen`
+.. |psutil.Process| replace:: :class:`psutil.Process`
